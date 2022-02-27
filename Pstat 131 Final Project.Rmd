@@ -1,0 +1,29 @@
+---
+title: "Pstat 131 Final Project"
+author: "Daniel Pry, Nick Van Daelen, Rick Zheng"
+date: "2/27/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ISLR)
+library(glmnet)
+library(tree)
+library(maptree)
+library(randomForest)
+library(gbm)
+library(ROCR)
+library(ggplot2)
+```
+
+# Pstat 131 Winter 2022 Final Project:
+
+## Predicting if NCAA Basketball players will be drafted based on their stats.
+
+Loading Data Set:
+source: https://www.kaggle.com/adityak2003/college-basketball-players-20092021
+```{r}
+college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv')
+```
