@@ -37,6 +37,24 @@ stats <- college_stats %>% mutate(drafted = ifelse(is.na(pick), 0, 1))
 
 ```
 
+
+
+I'm thinking it's best to have 1 row for each player. Creating a column called seasons for how many seasons they played in college. Then, all the stats could either be averages of all their seasons or just their last season in college. I think it almost makes more sense to make most of the stats be just their last season in college. OR maybe both.
+
+I made a column for the average min_per as well as one that keeps their min_per from that season. Something like ortg, eFG, and TS_per we shouldn't average across all seasons though because thats probably calculated by games and such so each season's ortg would be weighted differently.
+
+IDk what usage is so ill do it both ways for now
+
+The more of these columns I get through the more it looks like going off of the last season (Or maybe the best season) is the only way to do it. 
+
+Going through all of the columns will take a while so I want you guys to take a look first to see if what im doing makes sense and if it's how we want to go about doing it.If it is than ill finish this part another time
+```{r}
+s <- stats %>% group_by(player_name) %>% summarise(team = team, conf = conf, seasons = length(player_name), Min_per_avg = mean(Min_per), Min_per_last = Min_per, Ortg_last = Ortg, usg_avg = mean(usg), usg_last = usg, eFG_last = eFG, TS_per_last = TS_per, ORB_per_last = ORB_per, DRB_per_last = DRB_per, TO_per_last = TO_per, AST_per_last = AST_per, FTM_avg = mean(FTM), FTM_last = FTM, FTA_avg = mean(FTA), FTA_last = FTA)
+
+s
+
+```
+
 # Exploratory Plots
 Making a barplot of the percentage of players from each conference that are drafted.
 
