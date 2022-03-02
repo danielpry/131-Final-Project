@@ -32,10 +32,7 @@ Adding column to show if the player got drafted or not.
 Create a column indicating whether or not the player was drafted
 
 ```{r}
-college_stats <- college_stats %>% 
-  mutate(drafted=as.factor(ifelse(is.na(college_stats$pick), 0, 1)))
 stats <- college_stats %>% mutate(drafted = ifelse(is.na(pick), 0, 1))
-
 ```
 
 
