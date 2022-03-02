@@ -27,3 +27,9 @@ source: https://www.kaggle.com/adityak2003/college-basketball-players-20092021
 ```{r}
 college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv')
 ```
+
+Adding column to show if the player got drafted or not.
+```{r}
+college_stats <- college_stats %>% 
+  mutate(drafted=as.factor(ifelse(is.na(college_stats$pick), 0, 1)))
+```
