@@ -47,17 +47,19 @@ The more of these columns I get through the more it looks like going off of the 
 
 Going through all of the columns will take a while so I want you guys to take a look first to see if what im doing makes sense and if it's how we want to go about doing it.If it is than ill finish this part another time
 ```{r}
-s <- stats %>% group_by(pid) %>% summarise(player_name = player_name, team = team, conf = conf, seasons = length(pid), Min_per  = Min_per, Ortg  = Ortg, usg  = usg, eFG  = eFG, TS_per  = TS_per, ORB_per  = ORB_per, DRB_per  = DRB_per, TO_per  = TO_per, AST_per  = AST_per, FTM  = FTM, FTA  = FTA, FT_per = FT_per, twoPM = twoPM, twoPA = twoPA, twoP_per = twoP_per, TPM = TPM, TPA = TPA, TP_per = TP_per, blk_per = blk_per, stl_per = stl_per, last_yr = yr, ht = ht, adjoe  = adjoe, year = year, pid = pid, Rec.Rank = Rec.Rank, ast.tov = ast.tov, rimmade = rimmade, rim_att = rimmade.rimmiss, rim_per = rimmade..rimmade.rimmiss., midmade = midmade, mid_att = midmade.midmiss, mid_per = midmade..midmade.midmiss., dunksmade = dunksmade, dunks_att = dunksmiss.dunksmade, dunk_per = dunksmade..dunksmade.dunksmiss., drtg = drtg, adrtg = adrtg, stops = stops, bpm = bpm, min_played = mp, off_reb = oreb, def_reb = dreb, total_reb = treb, ast = ast, stl = stl, blk = blk, pts = pts, Position = X)
+s <- stats %>% group_by(pid) %>% summarise(player_name = player_name, team = team, conf = conf, seasons = length(pid), Min_per  = Min_per, Ortg  = Ortg, usg  = usg, eFG  = eFG, TS_per  = TS_per, ORB_per  = ORB_per, DRB_per  = DRB_per, TO_per  = TO_per, AST_per  = AST_per, FTM  = FTM, FTA  = FTA, FT_per = FT_per, twoPM = twoPM, twoPA = twoPA, twoP_per = twoP_per, TPM = TPM, TPA = TPA, TP_per = TP_per, blk_per = blk_per, stl_per = stl_per, college_year = yr, ht = ht, adjoe  = adjoe, year = year, pid = pid, Rec.Rank = Rec.Rank, ast.tov = ast.tov, rimmade = rimmade, rim_att = rimmade.rimmiss, rim_per = rimmade..rimmade.rimmiss., midmade = midmade, mid_att = midmade.midmiss, mid_per = midmade..midmade.midmiss., dunksmade = dunksmade, dunks_att = dunksmiss.dunksmade, dunk_per = dunksmade..dunksmade.dunksmiss., drtg = drtg, adrtg = adrtg, stops = stops, bpm = bpm, min_played = mp, off_reb = oreb, def_reb = dreb, total_reb = treb, ast = ast, stl = stl, blk = blk, pts = pts, Position = X, drafted = drafted)
 
 s
 
+s_cleaned <- s %>% slice_max(year)
+s_cleaned
 ```
 
 # Exploratory Plots
 Making a barplot of the percentage of players from each conference that are drafted.
 
 ```{r, fig.width=10}
-draft_by_conf <-  stats %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
+draft_by_conf <-  s_cleaned %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
 
 ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identity") +
   theme(axis.text.x = element_text(angle = 90))
