@@ -47,7 +47,7 @@ The more of these columns I get through the more it looks like going off of the 
 
 Going through all of the columns will take a while so I want you guys to take a look first to see if what im doing makes sense and if it's how we want to go about doing it.If it is than ill finish this part another time
 ```{r}
-s <- stats %>% group_by(player_name) %>% summarise(team = team, conf = conf, seasons = length(player_name), Min_per_avg = mean(Min_per), Min_per_last = Min_per, Ortg_last = Ortg, usg_avg = mean(usg), usg_last = usg, eFG_last = eFG, TS_per_last = TS_per, ORB_per_last = ORB_per, DRB_per_last = DRB_per, TO_per_last = TO_per, AST_per_last = AST_per, FTM_avg = mean(FTM), FTM_last = FTM, FTA_avg = mean(FTA), FTA_last = FTA)
+s <- stats %>% group_by(pid) %>% summarise(player_name = player_name, team = team, conf = conf, seasons = length(pid), Min_per  = Min_per, Ortg  = Ortg, usg  = usg, eFG  = eFG, TS_per  = TS_per, ORB_per  = ORB_per, DRB_per  = DRB_per, TO_per  = TO_per, AST_per  = AST_per, FTM  = FTM, FTA  = FTA, FT_per = FT_per, twoPM = twoPM, twoPA = twoPA, twoP_per = twoP_per, TPM = TPM, TPA = TPA, TP_per = TP_per, blk_per = blk_per, stl_per = stl_per, last_yr = yr, ht = ht, adjoe  = adjoe, year = year, pid = pid, Rec.Rank = Rec.Rank, ast.tov = ast.tov, rimmade = rimmade, rim_att = rimmade.rimmiss, rim_per = rimmade..rimmade.rimmiss., midmade = midmade, mid_att = midmade.midmiss, mid_per = midmade..midmade.midmiss., dunksmade = dunksmade, dunks_att = dunksmiss.dunksmade, dunk_per = dunksmade..dunksmade.dunksmiss., drtg = drtg, adrtg = adrtg, stops = stops, bpm = bpm, min_played = mp, off_reb = oreb, def_reb = dreb, total_reb = treb, ast = ast, stl = stl, blk = blk, pts = pts, Position = X)
 
 s
 
