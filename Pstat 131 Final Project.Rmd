@@ -58,6 +58,8 @@ s
 # Exploratory Plots
 Making a barplot of the percentage of players from each conference that are drafted.
 
+This plot isn't correct anymore because it includes some players multiple times. Im going to leave it for now because it will be easy to use once we have the data set looking how we want it with one obs per player.
+
 ```{r, fig.width=10}
 draft_by_conf <-  stats %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
 
