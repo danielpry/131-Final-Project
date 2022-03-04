@@ -75,4 +75,32 @@ ggplot(s_cleaned, aes(x = pts)) +
 ```
 
 
+Making box plots comparing the difference in the average value of certain predictors based on the player being drafted or not.
+```{r}
+# group by drafted or not
+drafted_means <- s_cleaned %>% subset(drafted == 1) %>% sapply(mean, na.rm=TRUE)
+drafted_means <- as.data.frame(drafted_means)
 
+undrafted_means <- s_cleaned %>% subset(drafted == 0) %>% sapply(mean, na.rm=TRUE)
+undrafted_means <- as.data.frame(undrafted_means)
+
+# taking averages of drafted and undrafted players
+drafted_vs_undrafted <- undrafted_means %>% mutate(drafted_means)
+
+# transforming data frame for plotting
+drafted_vs_undrafted$names <- rownames(drafted_vs_undrafted)
+rownames(drafted_vs_undrafted) <- NULL
+drafted_vs_undrafted <- gather(drafted_vs_undrafted, event, total, drafted_means:undrafted_means)
+
+d_vs_u <- drafted_vs_undrafted %>% filter(names == "pts" | names == "dunksmade" |
+                                            names == "min_played" | names == "ast" | 
+                                            names == "TPM" | names == "midmade"| 
+                                            names == "blk" | names == "total_reb" | 
+                                            names == "twoPM" | names == "rimmade" |
+                                            names == "stl" | names == "ht")
+
+# plotting of means
+avg_bars <- d_vs_u %>% ggplot(aes(names, total, fill=event)) + 
+  geom_bar(stat = "identity", position = 'dodge') + facet_wrap(~ names, scales = "free")
+avg_bars
+```
