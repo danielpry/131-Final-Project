@@ -53,6 +53,7 @@ s_cleaned[, 26][s_cleaned[, 26] == 0] <- NA
 #changing ht
 s_cleaned %>% select(ht)
 begin_height <- data.frame(do.call("rbind", strsplit(as.character(s_cleaned$ht), "-", fixed = TRUE)))
+
 ```
 
 ```{r, fig.width=10}
@@ -118,6 +119,19 @@ Making a barplot of the percentage of players from each conference that are draf
 
 We notice that there are a handful of conferences that have a drastically higher percentage of players drafted. Additionally, there are a few conferences where no players have been drafted.
 ```{r, fig.width=10}
+draft_by_conf <-  s_cleaned %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
+
+ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identity") +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+This plot exposes a few problems with the naming of the conferences in the Data. The independent conference is listed as 2 different conferences (ind and Ind) as a result of a discrepency in the capitalization and the PAC-12 was formerly known as the PAC-10 which is why there is a P10 as well as a P12. We fix these issues below and reprint the bar graph. 
+```{r}
+s_cleaned["conf"][s_cleaned["conf"] == "ind"] <- "Ind"
+s_cleaned["conf"][s_cleaned["conf"] == "P10"] <- "P12"
+```
+
+```{r}
 draft_by_conf <-  s_cleaned %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
 
 ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identity") +
