@@ -25,8 +25,8 @@ library(ggplot2)
 Loading Data Set:
 source: https://www.kaggle.com/adityak2003/college-basketball-players-20092021
 ```{r}
-college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv')
-college_stats %>% select(ht, pid)
+college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv',
+                          na.strings = c("", "N/A", "None", "-"))
 ```
 
 ```{r}
@@ -40,12 +40,20 @@ s_cleaned <- s %>% slice_max(year)
 head(s_cleaned)
 ```
 
+Cleaning abnormal values in data set
+```{r}
+s_cleaned[, 27][s_cleaned[, 27] == 0] <- NA
+s_cleaned[, 27][s_cleaned[, 27] == "So"] <- NA
+s_cleaned[, 27][s_cleaned[, 27] == "Jr"] <- NA
+s_cleaned[, 26][s_cleaned[, 26] == 0] <- NA
+```
+
+
 ```{r}
 #changing ht
 s_cleaned %>% select(ht)
 begin_height <- data.frame(do.call("rbind", strsplit(as.character(s_cleaned$ht), "-", fixed = TRUE)))
 ```
-<<<<<<< HEAD
 
 ```{r, fig.width=10}
 begin_height["X1"][begin_height["X1"] == "Jun"] <- 72
@@ -59,9 +67,11 @@ begin_height$X2 <- as.numeric(as.character(begin_height$X2))
 begin_height$height <- begin_height$X1 + begin_height$X2
 
 df_new <- cbind(s_cleaned, begin_height)
-df_new %>% select(-c("X1","X2", "ht"))
+
+df_new %>% select(-c('X1', 'X2', 'ht'))
 df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
 df_new %>% select(height)
+s_cleaned <- df_new
 ```
 
 ## Exploratory Data Analysis
@@ -95,7 +105,7 @@ d_vs_u <- drafted_vs_undrafted %>% filter(names == "pts" | names == "dunksmade" 
                                             names == "TPM" | names == "midmade"| 
                                             names == "blk" | names == "total_reb" | 
                                             names == "twoPM" | names == "rimmade" |
-                                            names == "stl" | names == "ht")
+                                            names == "stl" | names == "height")
 
 # plotting of means
 avg_bars <- d_vs_u %>% ggplot(aes(names, total, fill=event)) + 
