@@ -77,7 +77,6 @@ s_cleaned <- df_new
 
 ## Exploratory Data Analysis
 
-
 ```{r}
 ggplot(s_cleaned, aes(x = pts)) + 
   geom_histogram()
