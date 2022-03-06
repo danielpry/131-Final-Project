@@ -67,7 +67,6 @@ df_new %>% select(height)
 
 ## Exploratory Data Analysis
 
-
 ```{r}
 ggplot(s_cleaned, aes(x = pts)) + 
   geom_histogram()
