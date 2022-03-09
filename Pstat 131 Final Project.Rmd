@@ -18,9 +18,16 @@ library(ROCR)
 library(ggplot2)
 ```
 
-# Pstat 131 Winter 2022 Final Project:
+### Pstat 131 Winter 2022 Final Project:
 
-## Predicting if NCAA Basketball players will be drafted based on their stats.
+# Predicting if NCAA Basketball players will be drafted based on their stats.
+
+# Introduction
+
+
+
+
+# Loading Data
 
 Loading Data Set:
 source: https://www.kaggle.com/adityak2003/college-basketball-players-20092021
@@ -28,6 +35,9 @@ source: https://www.kaggle.com/adityak2003/college-basketball-players-20092021
 college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv',
                           na.strings = c("", "N/A", "None", "-"))
 ```
+
+
+# Data Cleaning
 
 ```{r}
 stats <- college_stats %>% mutate(drafted = ifelse(is.na(pick), 0, 1))
@@ -73,6 +83,13 @@ df_new %>% select(-c('X1', 'X2', 'ht'))
 df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
 df_new %>% select(height)
 s_cleaned <- df_new
+```
+Lastly, to finish cleaning our data we must get rid of players in the data who have not yet had the chance to either be drafted or to not be drafted. These players who are still playing in college will not help our model. A very good active college player would, as of now, have a zero in the "drafted" column. This could potentially weaken our model as they may go on to be drafted in the future. THerefore, we remove players whose "year" is 2021.
+
+```{r}
+s_cleaned <- subset(s_cleaned, year != 2021)
+
+
 ```
 
 ## Exploratory Data Analysis
@@ -153,29 +170,75 @@ s_cleaned %>% ggplot(aes(x=dunksmade, y = TPM, col = drafted)) + geom_point()
 
 ```
 
-# Test/training split
+The metrics of assists (ast) and assist percentage are base off of similar stats and therefore we expect them to be highly correlated. We wonder if they should both be included in the model as predictors. We plot a scatterplot of the data on these two variables below.
 
 ```{r}
-s_cleaned %>% select(c("pid", "player_name", "conf", "seasons", Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
+
+s_cleaned %>% ggplot(aes(x=AST_per, y = ast, col = drafted)) + geom_point()
+
+```
+From the scatterplot we can tell that the y axis (ast) is more informative to a players draft status than the x axis (ast_per) is. There are so many players that dont play all that often and could, as a result of sampling variation have a high assist percentage. None of these players wind up getting drafted. Therefore, we believe it is best to use assists as a predictor rather than assist percentage because the two metrics are highly correlated for players with a significant amount of data, but just looking at assist percentage could be misleading because of the players that aren't particularly good but still have a high assist percentage due to their small sample size.
+
+
+```{r}
+s_cleaned %>% ggplot(aes(x=rimmade, y = rim_per, col = drafted)) + geom_point()
+
+
+```
+
+
+# Test/training split
+
+We start by simplifying our dataset to only include certain columns that will be used as predictors.
+
+```{r}
+stats_df <- s_cleaned %>% select(c("pid", "player_name", "conf", "seasons", year, Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
 
 ```
 
 We will split the data into a test set and a training set. Since we have a reletively large number of observations, we should have a large enough test se if we used only 15 percent of the data for the test set, leaving many observations in the training set to fit our models.
 
-We sample for our test set using a stratified random sample. This is a good idea in this case because 
+We sample for our test set using a stratified random sample. This is a good idea in this case because ...
 
 ```{r}
 set.seed(123)
 
-test_set <- s_cleaned %>% group_by(year) %>% sample_frac(size = 0.15)
+test_set <- stats_df %>% group_by(year) %>% sample_frac(size = 0.15)
 
 test_set <- test_set[order(test_set$pid),]
 
 
-training_set <- s_cleaned[!s_cleaned$pid %in% test_set$pid,]
+training_set <- s_cleaned[!stats_df$pid %in% test_set$pid,]
 
 
 table(test_set$drafted)
 table(training_set$drafted)
 ```
 
+
+# Model Fitting
+
+*Logistic Regression:*
+
+
+
+*Random Forrest:*
+
+
+
+*Bossted Trees:*
+
+
+
+*K-Nearest-Neighbors*
+
+
+
+
+# Model perforemance and Selection
+
+
+
+
+
+# Conclusion
