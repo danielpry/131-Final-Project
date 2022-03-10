@@ -17,6 +17,8 @@ library(gbm)
 library(ROCR)
 library(ggplot2)
 library(ROSE)
+library(class)
+library(reshape2)
 ```
 
 ### Pstat 131 Winter 2022 Final Project:
@@ -332,8 +334,71 @@ varImpPlot(rf_opt)
 
 *K-Nearest-Neighbors*
 
+```{r}
+
+# YTrain is the true labels for drafted on the training set, XTrain is the design matrix
+YTrain = training_set$drafted
+XTrain = training_set %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+# YTest is the true labels for drafted on the test set, Xtest is the design matrix
+YTest = training_set$drafted
+XTest = training_set %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
 
 
+```
+
+Fit an initial knn model.
+
+```{r}
+bball.knn <- knn
+
+```
+
+
+```{r}
+do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
+# Get training index
+train = (folddef!=chunkid)
+# Get training set by the above index
+Xtr = Xdat[train,]
+# Get responses in training set
+Ytr = Ydat[train]
+# Get validation set
+Xvl = Xdat[!train,]
+# Get responses in validation set
+Yvl = Ydat[!train]
+# Predict training labels
+predYtr = knn(train=Xtr, test=Xtr, cl=Ytr, ...)
+# Predict validation labels
+predYvl = knn(train=Xtr, test=Xvl, cl=Ytr, ...)
+data.frame(fold = chunkid,
+train.error = mean(predYtr != Ytr), # Training error for each fold
+val.error = mean(predYvl != Yvl)) # Validation error for each fold
+}
+
+```
+
+```{r}
+nfold = 10
+folds = cut(1:nrow(seats.train), breaks=nfold, labels=FALSE) %>% sample()
+
+
+
+error.folds = NULL
+# Give possible number of nearest neighbours to be considered
+allK = 1:50
+# Loop through different number of neighbors
+for (k in allK){
+# Loop through different chunk id
+  for (j in seq(3)){
+    tmp = do.chunk(chunkid=j, folddef=folds, Xdat=XTrain, Ydat=YTrain, k=k)
+    tmp$neighbors = k # Record the last number of neighbor
+    error.folds = rbind(error.folds, tmp) # combine results
+  }
+}
+head(error.folds, 10)
+
+
+```
 
 # Model perforemance and Selection
 
