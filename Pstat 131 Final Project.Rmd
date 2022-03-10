@@ -19,6 +19,8 @@ library(ggplot2)
 library(ROSE)
 library(class)
 library(reshape2)
+library(psych)
+
 ```
 
 ### Pstat 131 Winter 2022 Final Project:
@@ -335,61 +337,85 @@ varImpPlot(rf_opt)
 *K-Nearest-Neighbors*
 
 ```{r}
+str(training_set)
 
-# YTrain is the true labels for drafted on the training set, XTrain is the design matrix
-YTrain = training_set$drafted
-XTrain = training_set %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
-# YTest is the true labels for drafted on the test set, Xtest is the design matrix
-YTest = training_set$drafted
-XTest = training_set %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+table(training_set$num_seasons)
 
-
+table(training_set$conference)
 ```
-
-Fit an initial knn model.
+Before we begin, we have to do something about the categorical variables we are using as predictors. A k-nearest-neighbors model would not work with variables like conference and num_seasons as we currently have them. We will dummycode these variables in both the training set as well as the test set.
 
 ```{r}
-bball.knn <- knn
+conference <- as.data.frame(dummy.code(training_set$conference))
+num_seasons <- as.data.frame(dummy.code(training_set$num_seasons))
+
+conference_t <- as.data.frame(dummy.code(test_set$conference))
+num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
+
+
+trn_st <- cbind(training_set, conference, num_seasons)
+
+trn_st <- trn_st %>% select(-one_of(c("conference", "num_seasons")))
+
+
+
+tst_st <- cbind(test_set, conference_t, num_seasons_t)
+
+tst_st <- tst_st %>% select(-one_of(c("conference", "num_seasons")))
+```
+
+
+```{r}
+
+# YTrain is the true labels for drafted on the training set, XTrain is the design matrix
+YTrain = trn_st$drafted
+XTrain = trn_st %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+# YTest is the true labels for drafted on the test set, Xtest is the design matrix
+YTest = tst_st$drafted
+XTest = tst_st %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+
 
 ```
+
+
 
 
 ```{r}
 do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
-# Get training index
-train = (folddef!=chunkid)
-# Get training set by the above index
-Xtr = Xdat[train,]
-# Get responses in training set
-Ytr = Ydat[train]
-# Get validation set
-Xvl = Xdat[!train,]
-# Get responses in validation set
-Yvl = Ydat[!train]
-# Predict training labels
-predYtr = knn(train=Xtr, test=Xtr, cl=Ytr, ...)
-# Predict validation labels
-predYvl = knn(train=Xtr, test=Xvl, cl=Ytr, ...)
-data.frame(fold = chunkid,
-train.error = mean(predYtr != Ytr), # Training error for each fold
-val.error = mean(predYvl != Yvl)) # Validation error for each fold
+  # Get training index
+  train = (folddef!=chunkid)
+  # Get training set by the above index
+  Xtr = Xdat[train,]
+  # Get responses in training set
+  Ytr = Ydat[train]
+  # Get validation set
+  Xvl = Xdat[!train,]
+  # Get responses in validation set
+  Yvl = Ydat[!train]
+  # Predict training labels
+  predYtr = knn(train=Xtr, test=Xtr, cl=Ytr, ...)
+  # Predict validation labels
+  predYvl = knn(train=Xtr, test=Xvl, cl=Ytr, ...)
+  data.frame(fold = chunkid,
+  train.error = mean(predYtr != Ytr), # Training error for each fold
+  val.error = mean(predYvl != Yvl)) # Validation error for each fold
 }
 
 ```
 
 ```{r}
 nfold = 10
-folds = cut(1:nrow(seats.train), breaks=nfold, labels=FALSE) %>% sample()
+folds = cut(1:nrow(trn_st), breaks=nfold, labels=FALSE) %>% sample()
 
 
 
 error.folds = NULL
 # Give possible number of nearest neighbours to be considered
-allK = 1:50
+allK = 2:20
 # Loop through different number of neighbors
 for (k in allK){
 # Loop through different chunk id
-  for (j in seq(3)){
+  for (j in seq(nfolds)){
     tmp = do.chunk(chunkid=j, folddef=folds, Xdat=XTrain, Ydat=YTrain, k=k)
     tmp$neighbors = k # Record the last number of neighbor
     error.folds = rbind(error.folds, tmp) # combine results
