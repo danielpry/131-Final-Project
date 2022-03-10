@@ -16,6 +16,7 @@ library(randomForest)
 library(gbm)
 library(ROCR)
 library(ggplot2)
+library(ROSE)
 ```
 
 ### Pstat 131 Winter 2022 Final Project:
@@ -189,7 +190,7 @@ s_cleaned %>% ggplot(aes(x=rimmade, y = rim_per, col = drafted)) + geom_point()
 
 # Test/training split
 
-We start by simplifying our dataset to only include certain columns that will be used as predictors.
+In order to simplify our code when we fit our models later, we start by simplifying our dataset to only include certain columns that will be used as predictors. Additionaly, categorical predictors such as conference, seasons, and drafted must be converted to factors.
 
 ```{r}
 sc <- s_cleaned
@@ -198,7 +199,7 @@ sc$num_seasons <- as.factor(s_cleaned$seasons)
 sc$drafted <- factor(s_cleaned$drafted, levels = c(0,1))
 
 
-stats_df <- sc %>% select(c(pid, player_name, conference, num_seasons, year, Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
+stats_df <- sc %>% ungroup() %>% select(c(pid, year, conference, num_seasons, Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
 
 ```
 
@@ -238,85 +239,90 @@ training_set <- stats_df[!stats_df$pid %in% test_set$pid,]
 table(test_set$drafted)
 table(training_set$drafted)
 ```
+Now that we've split the data into test and training sets, we can remove the year column as it will not be used as a predictor in the model. Player id is also no longer necessary. Both of these columns will be removed from both the training set as well as the test set
 
+```{r}
+training_set <- training_set %>% ungroup()
+
+test_set <- test_set %>% ungroup()
+
+training_set <- select(training_set, -c(pid,year))
+
+test_set <- select(test_set, -c(pid,year))
+
+```
+
+The two classes we have (Drafted vs not drafted) are extremely imbalanced. Less than 3 percent of the players in out data get drafted. This is a problem because if left this way our models will incorrectly classify many of the drafted players as not drafted. It could even have a relatively low error rate by simply classifying every observation as not drafted. Something needs to be done about this.
+
+In order to mitigate this problem we will employ sampling techniques using the ovun_sample() function. In this case we will both oversample and undersample. THe minority class(drafted players) will be oversampled with replacement while the majority class (undrafted players) will be undersampled with replacement. We will keep the same number of datapoints as there were in the origional training set.
+
+```{r}
+balanced_train_set <- ovun.sample(drafted ~ ., data = training_set, method = "both", p=0.2,                             N=17658, seed = 1)$data
+
+table(balanced_train_set$drafted)
+```
 
 # Model Fitting
 
-*Logistic Regression:*
-
-
 
 *Random Forrest:*
-
-Couldn't get it to work just yet. I think im close though
 
 
 Fit an initial random forrest model. Here I use mtry = 5 as it is close to the square root of the number of predictors we have. We'll use cross validation later to determine the optimal number for this.
 
 ```{r}
-rf.bball = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=training_set, mtry=5, ntree=100, importance=TRUE)
+rf.bball = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=5, ntree=100, importance=TRUE)
 
-rf.bball
+class_err_true = rf.bball$confusion[2,3]
+class_err_false = rf.bball$confusion[1,3]
+oob.error = rf.bball$err.rate[100,1]
 
 plot(rf.bball)
 
-predY = predict(rf.bball, newdata = training_set)
 
-comb <- cbind.data.frame(pred = predY, actual = training_set$drafted)
-comb$match <- comb$pred == comb$actual
-
-
-sum(predY == 1 && training_set$drafted == 1)/sum(training_set$drafted == 1)
 ```
+
+To cross validate we will loop through all the reasonable values for m. We fit a model with each of the m's and record the out-of-bag error rate. We also make note of the classification error for the true values because if we are trying to predict which players get drafted, it is important to correctly classify as many of the drafted players as possible. Since the proportion of players that get drafted is small, minimizing the overall error might not do the bast job at correctly classifying as many of the drafted players as possible. 
 
 ```{r}
-do.chunk <- function(chunkid, folddef, dat, ...){
-  # Get training index
-  train = (folddef!=chunkid)
-  # Get training set by the above index
-  tr = dat[train,]
+m = c()
+tce = c()
+fce = c()
+oob = c()
 
-  # Get validation set
-  vl = dat[!train,]
-
+ntree = 300
+for (i in 2:12){
+  rf = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=i, ntree=ntree, importance=TRUE)
   
-  rf = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=dat, mtry=m, ntree=100, importance=TRUE)
-  
-  # Predict training labels
-  predYtr = predict(rf, newdata = select(tr, -drafted))
-  # Predict validation labels
-  predYvl = predict(rf, newdata = select(vl, -drafted))
-  
-  data.frame(fold = chunkid, train.error = mean(predYtr != tr$drafted), train.tpr = sum(tr$drafted == 1 && predYtr == 1)/sum(tr$drafted == 1), val.error = mean(predYvl != vl$drafted)) # Validation error for each fold
+  m[i-1] <- i
+  tce[i-1] <- rf$confusion[2,3]
+  oob[i-1] <- rf$err.rate[ntree, 1]
+  fce[i-1] <- rf$confusion[1,3]
 }
+err = cbind(m=m, class_error_true = tce, class_error_false = fce, out_of_bag = oob)
+```
 
+It looks like 
+We fit a model with this parameter and plot the results below.
+```{r}
+rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=training_set, mtry=8, ntree=300, importance=TRUE)
 
+rf_opt
 
-nfold = 3
-
-folds = cut(1:nrow(training_set), breaks=nfold, labels=FALSE) %>% sample()
-
-
-
-
-error.folds = NULL
-allM = 3:10
-# Loop through different number for m
-for (m in allM){
-  # Loop through different chunk id
-  for (j in seq(nfold)){
-    tmp = do.chunk(chunkid=j, folddef=folds, dat = training_set, mtry=m)
-    tmp$m = m # Record the last number of neighbor
-    error.folds = rbind(error.folds, tmp) # combine results
-  }
-}
-error.folds
-
+plot(rf_opt)
 
 ```
+
+
+*Logistic Regression:*
+
+
+
 
 
 *Bossted Trees:*
+
+
 
 
 
