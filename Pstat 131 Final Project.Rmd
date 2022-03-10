@@ -313,6 +313,10 @@ plot(rf_opt)
 
 ```
 
+```{r, fig.height=12, fig.width=12}
+varImpPlot(rf_opt)
+
+```
 
 *Logistic Regression:*
 
