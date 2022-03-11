@@ -388,7 +388,17 @@ small_err_logit <- err_logit %>% filter(total_error==min(total_error))
 optimal_threshold = max(small_err_logit$t)
 ```
 
+Constructing and ROC Curve
 
+```{r}
+pred = prediction(prob.training, balanced_train_set$drafted)
+
+perf = performance(pred, measure="tpr", x.measure="fpr")
+
+plot(perf, col=2, lwd=3, main="ROC curve")
+abline(0,1)
+
+```
 
 *Bossted Trees:*
 
