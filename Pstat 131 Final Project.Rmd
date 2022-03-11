@@ -309,7 +309,7 @@ err = cbind(m=m, class_error_true = tce, class_error_false = fce, out_of_bag = o
 It looks like 
 We fit a model with this parameter and plot the results below.
 ```{r}
-rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=training_set, mtry=8, ntree=300, importance=TRUE)
+rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=8, ntree=300, importance=TRUE)
 
 rf_opt
 
@@ -346,14 +346,14 @@ table(training_set$conference)
 Before we begin, we have to do something about the categorical variables we are using as predictors. A k-nearest-neighbors model would not work with variables like conference and num_seasons as we currently have them. We will dummycode these variables in both the training set as well as the test set.
 
 ```{r}
-conference <- as.data.frame(dummy.code(training_set$conference))
-num_seasons <- as.data.frame(dummy.code(training_set$num_seasons))
+conference <- as.data.frame(dummy.code(balanced_train_set$conference))
+num_seasons <- as.data.frame(dummy.code(balanced_train_set$num_seasons))
 
 conference_t <- as.data.frame(dummy.code(test_set$conference))
 num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
 
 
-trn_st <- cbind(training_set, conference, num_seasons)
+trn_st <- cbind(balanced_train_set, conference, num_seasons)
 
 trn_st <- trn_st %>% select(-one_of(c("conference", "num_seasons")))
 
@@ -403,19 +403,22 @@ do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
 
 ```
 
+
+
+Here we execute the cross validation using the do.chunk function we created above. We will take the averages of the validation error for each value for k and store the lowest on as a variable called k_optimal
 ```{r}
-nfold = 10
+nfold = 3
 folds = cut(1:nrow(trn_st), breaks=nfold, labels=FALSE) %>% sample()
 
 
 
 error.folds = NULL
 # Give possible number of nearest neighbours to be considered
-allK = 2:20
+allK = 3:5
 # Loop through different number of neighbors
 for (k in allK){
 # Loop through different chunk id
-  for (j in seq(nfolds)){
+  for (j in seq(nfold)){
     tmp = do.chunk(chunkid=j, folddef=folds, Xdat=XTrain, Ydat=YTrain, k=k)
     tmp$neighbors = k # Record the last number of neighbor
     error.folds = rbind(error.folds, tmp) # combine results
@@ -424,7 +427,16 @@ for (k in allK){
 head(error.folds, 10)
 
 
+smallest_err <- error.folds %>% group_by(neighbors) %>% summarise(neighbors = neighbors, avg_val.err = mean(val.error)) %>% ungroup() %>% filter(avg_val.err==min(avg_val.err))
+
+k_optimal = max(smallest_err$neighbors)
+
 ```
+
+This values for k_optimal is what we will use to evaluate the performance of this model and compare this k-nearest-neighbor model to the other models that we fit.
+
+
+
 
 # Model perforemance and Selection
 
