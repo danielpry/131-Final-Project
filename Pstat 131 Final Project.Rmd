@@ -20,7 +20,9 @@ library(ROSE)
 library(class)
 library(reshape2)
 library(psych)
-
+library(caret)
+library(e1071)
+library(MASS)
 ```
 
 ### Pstat 131 Winter 2022 Final Project:
@@ -261,13 +263,21 @@ The two classes we have (Drafted vs not drafted) are extremely imbalanced. Less 
 In order to mitigate this problem we will employ sampling techniques using the ovun_sample() function. In this case we will both oversample and undersample. THe minority class(drafted players) will be oversampled with replacement while the majority class (undrafted players) will be undersampled with replacement. We will keep the same number of datapoints as there were in the origional training set.
 
 ```{r}
-balanced_train_set <- ovun.sample(drafted ~ ., data = training_set, method = "both", p=0.2,                             N=17658, seed = 1)$data
+set.seed(112)
+balanced_train_set <- ovun.sample(drafted ~ ., data = training_set, method = "both", p=0.3,                             N=17658, seed = 1)$data
 
 table(balanced_train_set$drafted)
 ```
 
 # Model Fitting
 
+Our process for fitting the models will follow the following steps:
+
+1. First we'll fit an initial models using parameters that seem intuitive.
+
+2. Next, we'll use cross validation to tune those parameters to find the best fit
+
+3. Then we will fit an model using the optimal parameters we found and analyze each of the models using some sort of visualization.
 
 *Random Forrest:*
 
@@ -275,11 +285,9 @@ table(balanced_train_set$drafted)
 Fit an initial random forrest model. Here I use mtry = 5 as it is close to the square root of the number of predictors we have. We'll use cross validation later to determine the optimal number for this.
 
 ```{r}
-rf.bball = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=5, ntree=100, importance=TRUE)
+rf.bball = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=5, ntree=300, importance=TRUE)
 
-class_err_true = rf.bball$confusion[2,3]
-class_err_false = rf.bball$confusion[1,3]
-oob.error = rf.bball$err.rate[100,1]
+rf.bball
 
 plot(rf.bball)
 
@@ -295,7 +303,7 @@ fce = c()
 oob = c()
 
 ntree = 300
-for (i in 2:12){
+for (i in 2:15){
   rf = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=i, ntree=ntree, importance=TRUE)
   
   m[i-1] <- i
@@ -303,13 +311,17 @@ for (i in 2:12){
   oob[i-1] <- rf$err.rate[ntree, 1]
   fce[i-1] <- rf$confusion[1,3]
 }
-err = cbind(m=m, class_error_true = tce, class_error_false = fce, out_of_bag = oob)
+err = data.frame(cbind(m=m, class_error_true = tce, class_error_false = fce, out_of_bag = oob))
+
+small_err <- err %>% filter(out_of_bag==min(out_of_bag))
+
+m_optimal = max(small_err$m)
 ```
 
 It looks like 
 We fit a model with this parameter and plot the results below.
 ```{r}
-rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=8, ntree=300, importance=TRUE)
+rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=m_optimal, ntree=ntree, importance=TRUE)
 
 rf_opt
 
@@ -322,9 +334,59 @@ varImpPlot(rf_opt)
 
 ```
 
+
 *Logistic Regression:*
 
+We'll Start by fitting a logistic regression model with all of the predictors.
 
+```{r}
+full_model <- glm(drafted ~ ., data = balanced_train_set, family = 'binomial')
+summary(full_model)
+
+
+```
+
+We notice that there are definitely some predictors that are more useful than others. We will use backward stepwise selection to determine the best subset of predictors for our model.
+
+```{r}
+step_model <- full_model %>% stepAIC(trace = FALSE)
+summary(step_model)
+
+```
+
+It looks like our code dropped a few of the predictors to make a better model. We notice that the AIC for the step_model is lower than it was in the full_model which is a good thing.
+
+Next, we must determine which threshhold is best to use to make predictions. We'll loop through all of the reasonable threshholds and then record the true positive rate, false positive rate, and total error for each. We'll use these metrics to decide on which threshold is best.
+
+```{r}
+prob.training = predict(step_model, type="response")
+
+
+
+t <- c()
+tpr <- c()
+fpr <- c()
+error <- c()
+  
+for (i in 1:9){
+  
+  bal_trn_st_w_pred = balanced_train_set %>% mutate(pred_drafted=as.factor(ifelse(prob.training<=(i/10), "No", "Yes")))
+
+  con_mat <- table(pred=bal_trn_st_w_pred$pred_drafted, true=balanced_train_set$drafted)
+  
+  t[i] <- i/10
+  tpr[i] <- con_mat[2,2]/(con_mat[2,2] + con_mat[1,2])
+  fpr[i] <- con_mat[2,1]/(con_mat[2,1] + con_mat[1,1])
+  error[i] <- (con_mat[1, 2] + con_mat[2,1])/(con_mat[1, 2] + con_mat[2,1] + con_mat[2, 2] + con_mat[1,1])
+}
+err_logit = data.frame(cbind(t=t, true_pos_rate = tpr, false_pos_rate = fpr, total_error = error))
+
+err_logit
+
+small_err_logit <- err_logit %>% filter(total_error==min(total_error))
+
+optimal_threshold = max(small_err_logit$t)
+```
 
 
 
