@@ -27,10 +27,9 @@ library(MASS)
 
 ### Pstat 131 Winter 2022 Final Project:
 
-# Predicting if NCAA Basketball players will be drafted based on their stats.
+# Predicting if NCAA Basketball players will be drafted to the NBA based on their college stats.
 
 # Introduction
-
 
 
 
@@ -96,18 +95,18 @@ Lastly, to finish cleaning our data we must get rid of players in the data who h
 ```{r}
 s_cleaned <- subset(s_cleaned, year != 2021)
 
-
 ```
 
 ## Exploratory Data Analysis
 
+This histogram shows the average points scored per game on the x-axis and the frequency number of players in the data set that score average that number of points. 
 ```{r}
 ggplot(s_cleaned, aes(x = pts)) + 
   geom_histogram()
 ```
 
 
-Making box plots comparing the difference in the average value of certain predictors based on the player being drafted or not.
+In the following plot we compare the averages of certain predictors for drafted vs non-drafted players. From these it is possible to make potential assumptions on what predictors might be significant for predicting if a player is drafted. For example the difference in average height of drafted and non-drafted is not very different so this might imply that height will not be a very significant predictor in many of the models. Many of the other predictors do have very different averages for drafted and non-drafted players so it is very likely some of these other predictors will be signifcant in predicting if a player is drafted. 
 ```{r}
 # group by drafted or not
 drafted_means <- s_cleaned %>% subset(drafted == 1) %>% sapply(mean, na.rm=TRUE)
@@ -211,7 +210,7 @@ stats_df <- sc %>% ungroup() %>% select(c(pid, year, conference, num_seasons, Mi
 
 
 
-Random forrests cannot contain kissing values in predictor columns, therefore the columns with many missing values (rimmade, midmade, dunksmade, rim_per, mid_per, and dunk_per) will have their missing values replaced with 0.
+Random forrests cannot contain missing values in predictor columns, therefore the columns with many missing values (rimmade, midmade, dunksmade, rim_per, mid_per, and dunk_per) will have their missing values replaced with 0.
 
 ```{r}
 
@@ -227,7 +226,7 @@ sapply(stats_df, function(x) sum(is.na(x)))
 ```
 
 
-We will split the data into a test set and a training set. Since we have a reletively large number of observations, we should have a large enough test se if we used only 15 percent of the data for the test set, leaving many observations in the training set to fit our models.
+We will split the data into a test set and a training set. Since we have a reletively large number of observations, we should have a large enough test set if we used only 15 percent of the data for the test set, leaving many observations in the training set to fit our models.
 
 We sample for our test set using a stratified random sample. This is a good idea in this case because ...
 
@@ -260,7 +259,7 @@ test_set <- select(test_set, -c(pid,year))
 
 The two classes we have (Drafted vs not drafted) are extremely imbalanced. Less than 3 percent of the players in out data get drafted. This is a problem because if left this way our models will incorrectly classify many of the drafted players as not drafted. It could even have a relatively low error rate by simply classifying every observation as not drafted. Something needs to be done about this.
 
-In order to mitigate this problem we will employ sampling techniques using the ovun_sample() function. In this case we will both oversample and undersample. THe minority class(drafted players) will be oversampled with replacement while the majority class (undrafted players) will be undersampled with replacement. We will keep the same number of datapoints as there were in the origional training set.
+In order to mitigate this problem we will employ sampling techniques using the ovun_sample() function. In this case we will both oversample and undersample. The minority class(drafted players) will be oversampled with replacement while the majority class (undrafted players) will be undersampled with replacement. We will keep the same number of datapoints as there were in the origional training set.
 
 ```{r}
 set.seed(112)
@@ -277,7 +276,7 @@ Our process for fitting the models will follow the following steps:
 
 2. Next, we'll use cross validation to tune those parameters to find the best fit
 
-3. Then we will fit an model using the optimal parameters we found and analyze each of the models using some sort of visualization.
+3. Then we will fit a model using the optimal parameters we found and analyze each of the models using some sort of visualization.
 
 *Random Forrest:*
 
@@ -294,7 +293,7 @@ plot(rf.bball)
 
 ```
 
-To cross validate we will loop through all the reasonable values for m. We fit a model with each of the m's and record the out-of-bag error rate. We also make note of the classification error for the true values because if we are trying to predict which players get drafted, it is important to correctly classify as many of the drafted players as possible. Since the proportion of players that get drafted is small, minimizing the overall error might not do the bast job at correctly classifying as many of the drafted players as possible. 
+To cross validate we will loop through all the reasonable values for m. We fit a model with each of the m's and record the out-of-bag error rate. We also make note of the classification error for the true values because if we are trying to predict which players get drafted, it is important to correctly classify as many of the drafted players as possible. Since the proportion of players that get drafted is small, minimizing the overall error might not do the best job at correctly classifying as many of the drafted players as possible. 
 
 ```{r}
 m = c()
