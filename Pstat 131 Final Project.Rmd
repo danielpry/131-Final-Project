@@ -204,13 +204,13 @@ sc$num_seasons <- as.factor(s_cleaned$seasons)
 sc$drafted <- factor(s_cleaned$drafted, levels = c(0,1))
 
 
-stats_df <- sc %>% ungroup() %>% select(c(pid, year, conference, num_seasons, Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
+stats_df <- sc %>% ungroup() %>% dplyr::select(c(pid, year, conference, num_seasons, Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
 
 ```
 
 
 
-Random forrests cannot contain missing values in predictor columns, therefore the columns with many missing values (rimmade, midmade, dunksmade, rim_per, mid_per, and dunk_per) will have their missing values replaced with 0.
+Random forests cannot contain missing values in predictor columns, therefore the columns with many missing values (rimmade, midmade, dunksmade, rim_per, mid_per, and dunk_per) will have their missing values replaced with 0.
 
 ```{r}
 
@@ -226,7 +226,7 @@ sapply(stats_df, function(x) sum(is.na(x)))
 ```
 
 
-We will split the data into a test set and a training set. Since we have a reletively large number of observations, we should have a large enough test set if we used only 15 percent of the data for the test set, leaving many observations in the training set to fit our models.
+We will split the data into a test set and a training set. Since we have a relatively large number of observations, we should have a large enough test set if we used only 15 percent of the data for the test set, leaving many observations in the training set to fit our models.
 
 We sample for our test set using a stratified random sample. This is a good idea in this case because ...
 
@@ -251,9 +251,9 @@ training_set <- training_set %>% ungroup()
 
 test_set <- test_set %>% ungroup()
 
-training_set <- select(training_set, -c(pid,year))
+training_set <- dplyr::select(training_set, -c(pid,year))
 
-test_set <- select(test_set, -c(pid,year))
+test_set <- dplyr::select(test_set, -c(pid,year))
 
 ```
 
@@ -325,7 +325,6 @@ rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM +
 rf_opt
 
 plot(rf_opt)
-
 ```
 
 ```{r, fig.height=12, fig.width=12}
@@ -426,13 +425,13 @@ num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
 
 trn_st <- cbind(balanced_train_set, conference, num_seasons)
 
-trn_st <- trn_st %>% select(-one_of(c("conference", "num_seasons")))
+trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
 
 
 
 tst_st <- cbind(test_set, conference_t, num_seasons_t)
 
-tst_st <- tst_st %>% select(-one_of(c("conference", "num_seasons")))
+tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
 ```
 
 
@@ -440,10 +439,10 @@ tst_st <- tst_st %>% select(-one_of(c("conference", "num_seasons")))
 
 # YTrain is the true labels for drafted on the training set, XTrain is the design matrix
 YTrain = trn_st$drafted
-XTrain = trn_st %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+XTrain = trn_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRUE)
 # YTest is the true labels for drafted on the test set, Xtest is the design matrix
 YTest = tst_st$drafted
-XTest = tst_st %>% select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+XTest = tst_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRUE)
 
 
 ```
