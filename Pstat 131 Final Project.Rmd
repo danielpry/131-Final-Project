@@ -67,7 +67,7 @@ s_cleaned[, 26][s_cleaned[, 26] == 0] <- NA
 
 ```{r}
 #changing ht
-s_cleaned %>% select(ht)
+s_cleaned %>% dplyr::select(ht)
 begin_height <- data.frame(do.call("rbind", strsplit(as.character(s_cleaned$ht), "-", fixed = TRUE)))
 
 ```
@@ -85,9 +85,9 @@ begin_height$height <- begin_height$X1 + begin_height$X2
 
 df_new <- cbind(s_cleaned, begin_height)
 
-df_new %>% select(-c('X1', 'X2', 'ht'))
+df_new %>% dplyr::select(-c('X1', 'X2', 'ht'))
 df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
-df_new %>% select(height)
+df_new %>% dplyr::select(height)
 s_cleaned <- df_new
 ```
 Lastly, to finish cleaning our data we must get rid of players in the data who have not yet had the chance to either be drafted or to not be drafted. These players who are still playing in college will not help our model. A very good active college player would, as of now, have a zero in the "drafted" column. This could potentially weaken our model as they may go on to be drafted in the future. THerefore, we remove players whose "year" is 2021.
