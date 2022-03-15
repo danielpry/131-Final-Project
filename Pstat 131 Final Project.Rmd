@@ -417,15 +417,19 @@ conference_t <- as.data.frame(dummy.code(test_set$conference))
 num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
 
 
+
 trn_st <- cbind(balanced_train_set, conference, num_seasons)
 
-trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
+trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
 
 
 
 tst_st <- cbind(test_set, conference_t, num_seasons_t)
 
-tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
+tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
+
+
+
 ```
 
 
@@ -437,6 +441,7 @@ XTrain = trn_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRU
 # YTest is the true labels for drafted on the test set, Xtest is the design matrix
 YTest = tst_st$drafted
 XTest = tst_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRUE)
+
 
 
 ```
@@ -504,8 +509,48 @@ This values for k_optimal is what we will use to evaluate the performance of thi
 
 # Model perforemance and Selection
 
+MAke predictions of the draft status of players in the test set using the Random Forrest model. Print a confusion matrix and record the test error
+
+```{r}
+
+yhat.rf = predict (rf_opt, newdata = test_set)
+
+rf.err = table(pred = yhat.rf, truth = test_set$drafted)
+test.rf.err = 1 - sum(diag(rf.err))/sum(rf.err)
+rf.err
+test.rf.err
+
+```
+
+Now we will make predictions using the logistic regression model
+
+```{r}
+prob.test = predict(step_model, newdata = test_set, type="response")
+
+test_set_w_pred = test_set %>% mutate(pred_drafted=as.factor(ifelse(prob.test<=(optimal_threshold), 0, 1)))
+
+log.err <- table(pred = test_set_w_pred$pred_drafted, true = test_set$drafted)
+
+test.log.err = 1 - sum(diag(log.err))/sum(log.err)
+
+log.err
+test.log.err
+
+```
+
+```{r}
+
+
+predYtst = knn(train=XTrain, test=XTest, cl=YTrain, k = k_optimal)
 
 
 
+test.error = mean(predYtst != YTest)
+
+knn.err <- table(pred=predYtst, true=test_set$drafted)
+
+knn.err
+test.error
+```
 
 # Conclusion
