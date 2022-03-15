@@ -1,4 +1,3 @@
 # 131-Final-Project
-Pstat 131 Final Project
 
-In this project we use NCAA Basketball players stats to predict if the player gets drafted into the NBA.
+Every year the NBA holds their draft, where teams will pick to sign new players on to their team. Per the NBA rules for the draft there are not many rules against who can’t be drafted other than the player must be at least one year removed from high school. Naturally this causes NCAA basketball teams to be the biggest pool of talent for the NBA to draft athletes from. Historically about ninety percent of players drafted come from Division one programs in the NCAA. In this project we will be attempting to use players’ statistics from their last season in the NCAA from the years 2009 to 2020 to predict if a player will be drafted. The data set includes about 20000 players where only about 500 end up getting drafted. 
