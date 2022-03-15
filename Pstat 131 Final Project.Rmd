@@ -354,16 +354,7 @@ rpart.plot(boosted_fit, extra = 106)
 
 ```
 
-```{r}
-boosted_predict <- predict(boosted_fit, test_set, type = "class")
 
-table_boosted <- table(test_set$drafted, boosted_predict)
-table_boosted
-
-accuracy_boosted <- sum(diag(table_boosted)) / sum(table_boosted)
-print(paste('Boosted Trees: Accuracy', accuracy_boosted))
-
-```
 
 ```{r}
 #hypertuning
@@ -447,11 +438,11 @@ do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
 
 Here we execute the cross validation using the do.chunk function we created above. We will take the averages of the validation error for each value for k and store the lowest on as a variable called k_optimal
 ```{r}
-nfold = 3
+nfold = 5
 folds = cut(1:nrow(trn_st), breaks=nfold, labels=FALSE) %>% sample()
 error.folds = NULL
 # Give possible number of nearest neighbours to be considered
-allK = 3:5
+allK = 2:10
 # Loop through different number of neighbors
 for (k in allK){
 # Loop through different chunk id
@@ -473,14 +464,14 @@ This values for k_optimal is what we will use to evaluate the performance of thi
 
 # Model perforemance and Selection
 
-MAke predictions of the draft status of players in the test set using the Random Forrest model. Print a confusion matrix and record the test error
+Make predictions of the draft status of players in the test set using the Random Forrest model. Print a confusion matrix and record the test error
 
 ```{r}
 yhat.rf = predict (rf_opt, newdata = test_set)
 rf.err = table(pred = yhat.rf, truth = test_set$drafted)
 test.rf.err = 1 - sum(diag(rf.err))/sum(rf.err)
 rf.err
-test.rf.err
+print(paste('Random Forrest Error: ', test.rf.err))
 ```
 
 Now we will make predictions using the logistic regression model
@@ -491,15 +482,28 @@ test_set_w_pred = test_set %>% mutate(pred_drafted=as.factor(ifelse(prob.test<=(
 log.err <- table(pred = test_set_w_pred$pred_drafted, true = test_set$drafted)
 test.log.err = 1 - sum(diag(log.err))/sum(log.err)
 log.err
-test.log.err
+print(paste('Logistic Regression Error: ', test.log.err))
 ```
+
+```{r}
+boosted_predict <- predict(boosted_fit, test_set, type = "class")
+
+table_boosted <- table(pred = boosted_predict, true = test_set$drafted)
+table_boosted
+
+test.boost.err <- round((1-(sum(diag(table_boosted)) / sum(table_boosted))), 8)
+print(paste('Boosted Trees Error: ', test.boost.err))
+
+```
+
 
 ```{r}
 predYtst = knn(train=XTrain, test=XTest, cl=YTrain, k = k_optimal)
 test.error = mean(predYtst != YTest)
 knn.err <- table(pred=predYtst, true=test_set$drafted)
 knn.err
-test.error
+print(paste('K-Nearest-Neighbor Error: ', test.error))
 ```
 
 # Conclusion
+
