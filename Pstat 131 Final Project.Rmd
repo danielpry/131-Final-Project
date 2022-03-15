@@ -31,7 +31,7 @@ library(MASS)
 
 # Introduction
 
-
+Every year the NBA holds their draft, where teams will pick to sign new players on to their team. Per the NBA rules for the draft there are not many rules against who can’t be drafted other than the player must be at least one year removed from high school. Naturally this causes NCAA basketball teams to be the biggest pool of talent for the NBA to draft athletes from. Historically about ninety percent of players drafted come from Division one programs in the NCAA. In this project we will be attempting to use players’ statistics from their last season in the NCAA from the years 2009 to 2020 to predict if a player will be drafted. The data set includes about 20000 players where only about 500 end up getting drafted. 
 
 # Loading Data
 
@@ -44,19 +44,19 @@ college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv',
 
 
 # Data Cleaning
-
+In this step we add a row where 1 denotes a player getting drafted and 0 denotes a player not getting drafted.
 ```{r}
 stats <- college_stats %>% mutate(drafted = ifelse(is.na(pick), 0, 1))
 ```
 
+Here we clean the data so it only includes a players last season as well as rename some of the predictors. 
 ```{r}
 s <- stats %>% group_by(pid) %>% summarise(player_name = player_name, team = team, conf = conf, seasons = length(pid), Min_per  = Min_per, Ortg  = Ortg, usg  = usg, eFG  = eFG, TS_per  = TS_per, ORB_per  = ORB_per, DRB_per  = DRB_per, TO_per  = TO_per, AST_per  = AST_per, FTM  = FTM, FTA  = FTA, FT_per = FT_per, twoPM = twoPM, twoPA = twoPA, twoP_per = twoP_per, TPM = TPM, TPA = TPA, TP_per = TP_per, blk_per = blk_per, stl_per = stl_per, college_year = yr, ht = ht, adjoe  = adjoe, year = year, pid = pid, Rec.Rank = Rec.Rank, ast.tov = ast.tov, rimmade = rimmade, rim_att = rimmade.rimmiss, rim_per = rimmade..rimmade.rimmiss., midmade = midmade, mid_att = midmade.midmiss, mid_per = midmade..midmade.midmiss., dunksmade = dunksmade, dunks_att = dunksmiss.dunksmade, dunk_per = dunksmade..dunksmade.dunksmiss., drtg = drtg, adrtg = adrtg, stops = stops, bpm = bpm, min_played = mp, off_reb = oreb, def_reb = dreb, total_reb = treb, ast = ast, stl = stl, blk = blk, pts = pts, Position = X, drafted = drafted)
-
 s_cleaned <- s %>% slice_max(year)
 head(s_cleaned)
 ```
 
-Cleaning abnormal values in data set
+Cleaning abnormal values in data set and changing them to NA.
 ```{r}
 s_cleaned[, 27][s_cleaned[, 27] == 0] <- NA
 s_cleaned[, 27][s_cleaned[, 27] == "So"] <- NA
@@ -64,12 +64,11 @@ s_cleaned[, 27][s_cleaned[, 27] == "Jr"] <- NA
 s_cleaned[, 26][s_cleaned[, 26] == 0] <- NA
 ```
 
-
+Height is a unique format using months to denote feet. For example May corresponds to 5 feet, June to 6 feet, and July to 7 feet. This column also contains a number that denotes inches. The month and number for inches are separated by a dash and in this step we clean this columns so that height is listed in just inches.
 ```{r}
 #changing ht
 s_cleaned %>% dplyr::select(ht)
 begin_height <- data.frame(do.call("rbind", strsplit(as.character(s_cleaned$ht), "-", fixed = TRUE)))
-
 ```
 
 ```{r, fig.width=10}
@@ -82,54 +81,46 @@ begin_height["X2"][begin_height["X2"] == "May"] <- 60
 begin_height$X1 <- as.numeric(as.character(begin_height$X1))
 begin_height$X2 <- as.numeric(as.character(begin_height$X2))
 begin_height$height <- begin_height$X1 + begin_height$X2
-
 df_new <- cbind(s_cleaned, begin_height)
-
 df_new %>% dplyr::select(-c('X1', 'X2', 'ht'))
-df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
+#df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
 df_new %>% dplyr::select(height)
 s_cleaned <- df_new
 ```
-Lastly, to finish cleaning our data we must get rid of players in the data who have not yet had the chance to either be drafted or to not be drafted. These players who are still playing in college will not help our model. A very good active college player would, as of now, have a zero in the "drafted" column. This could potentially weaken our model as they may go on to be drafted in the future. THerefore, we remove players whose "year" is 2021.
+Lastly, to finish cleaning our data we must get rid of players in the data who have not yet had the chance to either be drafted or to not be drafted. These players who are still playing in college will not help our model. A very good active college player would, as of now, have a zero in the "drafted" column. This could potentially weaken our model as they may go on to be drafted in the future. Therefore, we remove players whose "year" is 2021.
 
 ```{r}
 s_cleaned <- subset(s_cleaned, year != 2021)
-
 ```
 
 ## Exploratory Data Analysis
 
-This histogram shows the average points scored per game on the x-axis and the frequency number of players in the data set that score average that number of points. 
+This histogram shows the average points scored per game on the x-axis and the frequency number of players in the data set that score average that number of points. Presumably players with more points per game are more likely to be drafted and this histogram shows how common or uncommon a players scoring ability is.
 ```{r}
 ggplot(s_cleaned, aes(x = pts)) + 
   geom_histogram()
 ```
 
 
-In the following plot we compare the averages of certain predictors for drafted vs non-drafted players. From these it is possible to make potential assumptions on what predictors might be significant for predicting if a player is drafted. For example the difference in average height of drafted and non-drafted is not very different so this might imply that height will not be a very significant predictor in many of the models. Many of the other predictors do have very different averages for drafted and non-drafted players so it is very likely some of these other predictors will be signifcant in predicting if a player is drafted. 
+In the following plot we compare the averages of certain predictors for drafted vs non-drafted players. From these it is possible to make potential assumptions on what predictors might be significant for predicting if a player is drafted. For example the difference in average height of drafted and non-drafted is not very different so this might imply that height will not be a very significant predictor in many of the models. Many of the other predictors do have very different averages for drafted and non-drafted players so it is very likely some of these other predictors will be significant in predicting if a player is drafted. 
 ```{r}
 # group by drafted or not
 drafted_means <- s_cleaned %>% subset(drafted == 1) %>% sapply(mean, na.rm=TRUE)
 drafted_means <- as.data.frame(drafted_means)
-
 undrafted_means <- s_cleaned %>% subset(drafted == 0) %>% sapply(mean, na.rm=TRUE)
 undrafted_means <- as.data.frame(undrafted_means)
-
 # taking averages of drafted and undrafted players
 drafted_vs_undrafted <- undrafted_means %>% mutate(drafted_means)
-
 # transforming data frame for plotting
 drafted_vs_undrafted$names <- rownames(drafted_vs_undrafted)
 rownames(drafted_vs_undrafted) <- NULL
 drafted_vs_undrafted <- gather(drafted_vs_undrafted, event, total, drafted_means:undrafted_means)
-
 d_vs_u <- drafted_vs_undrafted %>% filter(names == "pts" | names == "dunksmade" |
                                             names == "min_played" | names == "ast" | 
                                             names == "TPM" | names == "midmade"| 
                                             names == "blk" | names == "total_reb" | 
                                             names == "twoPM" | names == "rimmade" |
                                             names == "stl" | names == "height")
-
 # plotting of means
 avg_bars <- d_vs_u %>% ggplot(aes(names, total, fill=event)) + 
   geom_bar(stat = "identity", position = 'dodge') + facet_wrap(~ names, scales = "free")
@@ -142,12 +133,11 @@ Making a barplot of the percentage of players from each conference that are draf
 We notice that there are a handful of conferences that have a drastically higher percentage of players drafted. Additionally, there are a few conferences where no players have been drafted.
 ```{r, fig.width=10}
 draft_by_conf <-  s_cleaned %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
-
 ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identity") +
   theme(axis.text.x = element_text(angle = 90))
 ```
-
 This plot exposes a few problems with the naming of the conferences in the Data. The independent conference is listed as 2 different conferences (ind and Ind) as a result of a discrepency in the capitalization and the PAC-12 was formerly known as the PAC-10 which is why there is a P10 as well as a P12. We fix these issues below and reprint the bar graph. 
+
 ```{r}
 s_cleaned["conf"][s_cleaned["conf"] == "ind"] <- "Ind"
 s_cleaned["conf"][s_cleaned["conf"] == "P10"] <- "P12"
@@ -155,41 +145,33 @@ s_cleaned["conf"][s_cleaned["conf"] == "P10"] <- "P12"
 
 ```{r}
 draft_by_conf <-  s_cleaned %>% group_by(conf) %>% summarise(prop_drafted = mean(drafted))
-
 ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identity") +
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-To better understand the relationship between our predictors, we make scatteplots with 2 predictors on the axis and color indicating wheter that player was drafted.
+To better understand the relationship between our predictors, we make scatterplots with 2 predictors on the axis and color indicating whether that player was drafted.
 
-This first scatterplot has minutes played on the x axis and Points on the y axis. As expected these two variables are highly positively correlated with players who would go on to be drafted having higer values of both ending up in the top right of this plot.
+This first scatterplot has minutes played on the x axis and Points on the y axis. As expected these two variables are highly positively correlated with players who would go on to be drafted having higher values of both ending up in the top right of this plot.
 ```{r}
 s_cleaned %>% ggplot(aes(x=min_played, y = pts, col = drafted)) + geom_point()
-
 ```
 
 We made another scatterplot to examine the relationship between Dunks made and three pointers made. 
 
 ```{r}
 s_cleaned %>% ggplot(aes(x=dunksmade, y = TPM, col = drafted)) + geom_point()
-
-
 ```
 
 The metrics of assists (ast) and assist percentage are base off of similar stats and therefore we expect them to be highly correlated. We wonder if they should both be included in the model as predictors. We plot a scatterplot of the data on these two variables below.
 
 ```{r}
-
 s_cleaned %>% ggplot(aes(x=AST_per, y = ast, col = drafted)) + geom_point()
-
 ```
 From the scatterplot we can tell that the y axis (ast) is more informative to a players draft status than the x axis (ast_per) is. There are so many players that dont play all that often and could, as a result of sampling variation have a high assist percentage. None of these players wind up getting drafted. Therefore, we believe it is best to use assists as a predictor rather than assist percentage because the two metrics are highly correlated for players with a significant amount of data, but just looking at assist percentage could be misleading because of the players that aren't particularly good but still have a high assist percentage due to their small sample size.
 
-
+In the plot below we see a similar effect with rim shot percentage and rim shots made. Where rim shots made appears to be more informative for the same reasons because of lack of data for certain players.
 ```{r}
 s_cleaned %>% ggplot(aes(x=rimmade, y = rim_per, col = drafted)) + geom_point()
-
-
 ```
 
 
@@ -202,10 +184,7 @@ sc <- s_cleaned
 sc$conference <- as.factor(s_cleaned$conf)
 sc$num_seasons <- as.factor(s_cleaned$seasons)
 sc$drafted <- factor(s_cleaned$drafted, levels = c(0,1))
-
-
 stats_df <- sc %>% ungroup() %>% dplyr::select(c(pid, year, conference, num_seasons, Min_per, usg, FTM, FT_per, twoPM, twoP_per, TPM, TP_per, adjoe, rimmade, rim_per, midmade, mid_per, dunksmade, dunk_per, stops, min_played, off_reb, def_reb, total_reb, ast, stl, blk, pts, height, drafted))
-
 ```
 
 
@@ -213,16 +192,12 @@ stats_df <- sc %>% ungroup() %>% dplyr::select(c(pid, year, conference, num_seas
 Random forests cannot contain missing values in predictor columns, therefore the columns with many missing values (rimmade, midmade, dunksmade, rim_per, mid_per, and dunk_per) will have their missing values replaced with 0.
 
 ```{r}
-
 sapply(stats_df, function(x) sum(is.na(x)))
 ```
 
 ```{r}
-
 stats_df[is.na(stats_df)] <- 0
-
 sapply(stats_df, function(x) sum(is.na(x)))
-
 ```
 
 
@@ -232,15 +207,9 @@ We sample for our test set using a stratified random sample. This is a good idea
 
 ```{r}
 set.seed(123)
-
 test_set <- stats_df %>% group_by(year) %>% sample_frac(size = 0.15)
-
 test_set <- test_set[order(test_set$pid),]
-
-
 training_set <- stats_df[!stats_df$pid %in% test_set$pid,]
-
-
 table(test_set$drafted)
 table(training_set$drafted)
 ```
@@ -248,13 +217,9 @@ Now that we've split the data into test and training sets, we can remove the yea
 
 ```{r}
 training_set <- training_set %>% ungroup()
-
 test_set <- test_set %>% ungroup()
-
 training_set <- dplyr::select(training_set, -c(pid,year))
-
 test_set <- dplyr::select(test_set, -c(pid,year))
-
 ```
 
 The two classes we have (Drafted vs not drafted) are extremely imbalanced. Less than 3 percent of the players in out data get drafted. This is a problem because if left this way our models will incorrectly classify many of the drafted players as not drafted. It could even have a relatively low error rate by simply classifying every observation as not drafted. Something needs to be done about this.
@@ -264,7 +229,6 @@ In order to mitigate this problem we will employ sampling techniques using the o
 ```{r}
 set.seed(112)
 balanced_train_set <- ovun.sample(drafted ~ ., data = training_set, method = "both", p=0.3,                             N=17658, seed = 1)$data
-
 table(balanced_train_set$drafted)
 ```
 
@@ -278,18 +242,15 @@ Our process for fitting the models will follow the following steps:
 
 3. Then we will fit a model using the optimal parameters we found and analyze each of the models using some sort of visualization.
 
-*Random Forest:*
+*Random Forrest:*
+
 
 Fit an initial random forrest model. Here I use mtry = 5 as it is close to the square root of the number of predictors we have. We'll use cross validation later to determine the optimal number for this.
 
 ```{r}
 rf.bball = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=5, ntree=300, importance=TRUE)
-
 rf.bball
-
 plot(rf.bball)
-
-
 ```
 
 To cross validate we will loop through all the reasonable values for m. We fit a model with each of the m's and record the out-of-bag error rate. We also make note of the classification error for the true values because if we are trying to predict which players get drafted, it is important to correctly classify as many of the drafted players as possible. Since the proportion of players that get drafted is small, minimizing the overall error might not do the best job at correctly classifying as many of the drafted players as possible. 
@@ -299,7 +260,6 @@ m = c()
 tce = c()
 fce = c()
 oob = c()
-
 ntree = 300
 for (i in 2:15){
   rf = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=i, ntree=ntree, importance=TRUE)
@@ -310,9 +270,7 @@ for (i in 2:15){
   fce[i-1] <- rf$confusion[1,3]
 }
 err = data.frame(cbind(m=m, class_error_true = tce, class_error_false = fce, out_of_bag = oob))
-
 small_err <- err %>% filter(out_of_bag==min(out_of_bag))
-
 m_optimal = max(small_err$m)
 ```
 
@@ -320,15 +278,12 @@ It looks like
 We fit a model with this parameter and plot the results below.
 ```{r}
 rf_opt = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=m_optimal, ntree=ntree, importance=TRUE)
-
 rf_opt
-
 plot(rf_opt)
 ```
 
 ```{r, fig.height=12, fig.width=12}
 varImpPlot(rf_opt)
-
 ```
 
 
@@ -339,8 +294,6 @@ We'll Start by fitting a logistic regression model with all of the predictors.
 ```{r}
 full_model <- glm(drafted ~ ., data = balanced_train_set, family = 'binomial')
 summary(full_model)
-
-
 ```
 
 We notice that there are definitely some predictors that are more useful than others. We will use backward stepwise selection to determine the best subset of predictors for our model.
@@ -348,7 +301,6 @@ We notice that there are definitely some predictors that are more useful than ot
 ```{r}
 step_model <- full_model %>% stepAIC(trace = FALSE)
 summary(step_model)
-
 ```
 
 It looks like our code dropped a few of the predictors to make a better model. We notice that the AIC for the step_model is lower than it was in the full_model which is a good thing.
@@ -357,9 +309,6 @@ Next, we must determine which threshhold is best to use to make predictions. We'
 
 ```{r}
 prob.training = predict(step_model, type="response")
-
-
-
 t <- c()
 tpr <- c()
 fpr <- c()
@@ -368,7 +317,6 @@ error <- c()
 for (i in 1:9){
   
   bal_trn_st_w_pred = balanced_train_set %>% mutate(pred_drafted=as.factor(ifelse(prob.training<=(i/10), "No", "Yes")))
-
   con_mat <- table(pred=bal_trn_st_w_pred$pred_drafted, true=balanced_train_set$drafted)
   
   t[i] <- i/10
@@ -377,11 +325,8 @@ for (i in 1:9){
   error[i] <- (con_mat[1, 2] + con_mat[2,1])/(con_mat[1, 2] + con_mat[2,1] + con_mat[2, 2] + con_mat[1,1])
 }
 err_logit = data.frame(cbind(t=t, true_pos_rate = tpr, false_pos_rate = fpr, total_error = error))
-
 err_logit
-
 small_err_logit <- err_logit %>% filter(total_error==min(total_error))
-
 optimal_threshold = max(small_err_logit$t)
 ```
 
@@ -389,12 +334,9 @@ Constructing and ROC Curve
 
 ```{r}
 pred = prediction(prob.training, balanced_train_set$drafted)
-
 perf = performance(pred, measure="tpr", x.measure="fpr")
-
 plot(perf, col=2, lwd=3, main="ROC curve")
 abline(0,1)
-
 ```
 
 *Boosted Trees:*
@@ -450,9 +392,7 @@ accuracy_tune(tune_fit)
 
 ```{r}
 str(training_set)
-
 table(training_set$num_seasons)
-
 table(training_set$conference)
 ```
 Before we begin, we have to do something about the categorical variables we are using as predictors. A k-nearest-neighbors model would not work with variables like conference and num_seasons as we currently have them. We will dummycode these variables in both the training set as well as the test set.
@@ -460,33 +400,22 @@ Before we begin, we have to do something about the categorical variables we are 
 ```{r}
 conference <- as.data.frame(dummy.code(balanced_train_set$conference))
 num_seasons <- as.data.frame(dummy.code(balanced_train_set$num_seasons))
-
 conference_t <- as.data.frame(dummy.code(test_set$conference))
 num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
-
-
 trn_st <- cbind(balanced_train_set, conference, num_seasons)
-
-trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
-
-
-
+trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
 tst_st <- cbind(test_set, conference_t, num_seasons_t)
-
-tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
+tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
 ```
 
 
 ```{r}
-
 # YTrain is the true labels for drafted on the training set, XTrain is the design matrix
 YTrain = trn_st$drafted
 XTrain = trn_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRUE)
 # YTest is the true labels for drafted on the test set, Xtest is the design matrix
 YTest = tst_st$drafted
 XTest = tst_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRUE)
-
-
 ```
 
 
@@ -512,7 +441,6 @@ do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
   train.error = mean(predYtr != Ytr), # Training error for each fold
   val.error = mean(predYvl != Yvl)) # Validation error for each fold
 }
-
 ```
 
 
@@ -521,9 +449,6 @@ Here we execute the cross validation using the do.chunk function we created abov
 ```{r}
 nfold = 3
 folds = cut(1:nrow(trn_st), breaks=nfold, labels=FALSE) %>% sample()
-
-
-
 error.folds = NULL
 # Give possible number of nearest neighbours to be considered
 allK = 3:5
@@ -537,12 +462,8 @@ for (k in allK){
   }
 }
 head(error.folds, 10)
-
-
 smallest_err <- error.folds %>% group_by(neighbors) %>% summarise(neighbors = neighbors, avg_val.err = mean(val.error)) %>% ungroup() %>% filter(avg_val.err==min(avg_val.err))
-
 k_optimal = max(smallest_err$neighbors)
-
 ```
 
 This values for k_optimal is what we will use to evaluate the performance of this model and compare this k-nearest-neighbor model to the other models that we fit.
@@ -552,8 +473,33 @@ This values for k_optimal is what we will use to evaluate the performance of thi
 
 # Model perforemance and Selection
 
+MAke predictions of the draft status of players in the test set using the Random Forrest model. Print a confusion matrix and record the test error
 
+```{r}
+yhat.rf = predict (rf_opt, newdata = test_set)
+rf.err = table(pred = yhat.rf, truth = test_set$drafted)
+test.rf.err = 1 - sum(diag(rf.err))/sum(rf.err)
+rf.err
+test.rf.err
+```
 
+Now we will make predictions using the logistic regression model
 
+```{r}
+prob.test = predict(step_model, newdata = test_set, type="response")
+test_set_w_pred = test_set %>% mutate(pred_drafted=as.factor(ifelse(prob.test<=(optimal_threshold), 0, 1)))
+log.err <- table(pred = test_set_w_pred$pred_drafted, true = test_set$drafted)
+test.log.err = 1 - sum(diag(log.err))/sum(log.err)
+log.err
+test.log.err
+```
+
+```{r}
+predYtst = knn(train=XTrain, test=XTest, cl=YTrain, k = k_optimal)
+test.error = mean(predYtst != YTest)
+knn.err <- table(pred=predYtst, true=test_set$drafted)
+knn.err
+test.error
+```
 
 # Conclusion
