@@ -31,7 +31,7 @@ library(MASS)
 
 # Introduction
 
-Every year the NBA holds their draft, where teams will pick to sign new players on to their team. Per the NBA rules for the draft there are not many rules against who can’t be drafted other than the player must be at least one year removed from high school. Naturally this causes NCAA basketball teams to be the biggest pool of talent for the NBA to draft athletes from. Historically about ninety percent of players drafted come from Division one programs in the NCAA. In this project we will be attempting to use players’ statistics from their last season in the NCAA from the years 2009 to 2020 to predict if a player will be drafted. The data set includes about 20000 players where only about 500 end up getting drafted. 
+
 
 # Loading Data
 
@@ -44,12 +44,11 @@ college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv',
 
 
 # Data Cleaning
-In this step we add a row where 1 denotes a player getting drafted and 0 denotes a player not getting drafted.
+
 ```{r}
 stats <- college_stats %>% mutate(drafted = ifelse(is.na(pick), 0, 1))
 ```
 
-Here we clean the data so it only includes a players last season as well as rename some of the predictors. 
 ```{r}
 s <- stats %>% group_by(pid) %>% summarise(player_name = player_name, team = team, conf = conf, seasons = length(pid), Min_per  = Min_per, Ortg  = Ortg, usg  = usg, eFG  = eFG, TS_per  = TS_per, ORB_per  = ORB_per, DRB_per  = DRB_per, TO_per  = TO_per, AST_per  = AST_per, FTM  = FTM, FTA  = FTA, FT_per = FT_per, twoPM = twoPM, twoPA = twoPA, twoP_per = twoP_per, TPM = TPM, TPA = TPA, TP_per = TP_per, blk_per = blk_per, stl_per = stl_per, college_year = yr, ht = ht, adjoe  = adjoe, year = year, pid = pid, Rec.Rank = Rec.Rank, ast.tov = ast.tov, rimmade = rimmade, rim_att = rimmade.rimmiss, rim_per = rimmade..rimmade.rimmiss., midmade = midmade, mid_att = midmade.midmiss, mid_per = midmade..midmade.midmiss., dunksmade = dunksmade, dunks_att = dunksmiss.dunksmade, dunk_per = dunksmade..dunksmade.dunksmiss., drtg = drtg, adrtg = adrtg, stops = stops, bpm = bpm, min_played = mp, off_reb = oreb, def_reb = dreb, total_reb = treb, ast = ast, stl = stl, blk = blk, pts = pts, Position = X, drafted = drafted)
 
@@ -57,7 +56,7 @@ s_cleaned <- s %>% slice_max(year)
 head(s_cleaned)
 ```
 
-Cleaning abnormal values in data set and changing them to NA.
+Cleaning abnormal values in data set
 ```{r}
 s_cleaned[, 27][s_cleaned[, 27] == 0] <- NA
 s_cleaned[, 27][s_cleaned[, 27] == "So"] <- NA
@@ -65,7 +64,7 @@ s_cleaned[, 27][s_cleaned[, 27] == "Jr"] <- NA
 s_cleaned[, 26][s_cleaned[, 26] == 0] <- NA
 ```
 
-Height is a unique format using months to denote feet. For example May corresponds to 5 feet, June to 6 feet, and July to 7 feet. This column also contains a number that denotes inches. The month and number for inches are separated by a dash and in this step we clean this columns so that height is listed in just inches.
+
 ```{r}
 #changing ht
 s_cleaned %>% dplyr::select(ht)
@@ -87,11 +86,11 @@ begin_height$height <- begin_height$X1 + begin_height$X2
 df_new <- cbind(s_cleaned, begin_height)
 
 df_new %>% dplyr::select(-c('X1', 'X2', 'ht'))
-#df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
+df_new$height <- df_new$height %>% as.numeric() %>% replace_na(76.27)
 df_new %>% dplyr::select(height)
 s_cleaned <- df_new
 ```
-Lastly, to finish cleaning our data we must get rid of players in the data who have not yet had the chance to either be drafted or to not be drafted. These players who are still playing in college will not help our model. A very good active college player would, as of now, have a zero in the "drafted" column. This could potentially weaken our model as they may go on to be drafted in the future. Therefore, we remove players whose "year" is 2021.
+Lastly, to finish cleaning our data we must get rid of players in the data who have not yet had the chance to either be drafted or to not be drafted. These players who are still playing in college will not help our model. A very good active college player would, as of now, have a zero in the "drafted" column. This could potentially weaken our model as they may go on to be drafted in the future. THerefore, we remove players whose "year" is 2021.
 
 ```{r}
 s_cleaned <- subset(s_cleaned, year != 2021)
@@ -100,14 +99,14 @@ s_cleaned <- subset(s_cleaned, year != 2021)
 
 ## Exploratory Data Analysis
 
-This histogram shows the average points scored per game on the x-axis and the frequency number of players in the data set that score average that number of points. Presumably players with more points per game are more likely to be drafted and this histogram shows how common or uncommon a players scoring ability is.
+This histogram shows the average points scored per game on the x-axis and the frequency number of players in the data set that score average that number of points. 
 ```{r}
 ggplot(s_cleaned, aes(x = pts)) + 
   geom_histogram()
 ```
 
 
-In the following plot we compare the averages of certain predictors for drafted vs non-drafted players. From these it is possible to make potential assumptions on what predictors might be significant for predicting if a player is drafted. For example the difference in average height of drafted and non-drafted is not very different so this might imply that height will not be a very significant predictor in many of the models. Many of the other predictors do have very different averages for drafted and non-drafted players so it is very likely some of these other predictors will be significant in predicting if a player is drafted. 
+In the following plot we compare the averages of certain predictors for drafted vs non-drafted players. From these it is possible to make potential assumptions on what predictors might be significant for predicting if a player is drafted. For example the difference in average height of drafted and non-drafted is not very different so this might imply that height will not be a very significant predictor in many of the models. Many of the other predictors do have very different averages for drafted and non-drafted players so it is very likely some of these other predictors will be signifcant in predicting if a player is drafted. 
 ```{r}
 # group by drafted or not
 drafted_means <- s_cleaned %>% subset(drafted == 1) %>% sapply(mean, na.rm=TRUE)
@@ -147,8 +146,8 @@ draft_by_conf <-  s_cleaned %>% group_by(conf) %>% summarise(prop_drafted = mean
 ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identity") +
   theme(axis.text.x = element_text(angle = 90))
 ```
-This plot exposes a few problems with the naming of the conferences in the Data. The independent conference is listed as 2 different conferences (ind and Ind) as a result of a discrepency in the capitalization and the PAC-12 was formerly known as the PAC-10 which is why there is a P10 as well as a P12. We fix these issues below and reprint the bar graph. 
 
+This plot exposes a few problems with the naming of the conferences in the Data. The independent conference is listed as 2 different conferences (ind and Ind) as a result of a discrepency in the capitalization and the PAC-12 was formerly known as the PAC-10 which is why there is a P10 as well as a P12. We fix these issues below and reprint the bar graph. 
 ```{r}
 s_cleaned["conf"][s_cleaned["conf"] == "ind"] <- "Ind"
 s_cleaned["conf"][s_cleaned["conf"] == "P10"] <- "P12"
@@ -161,29 +160,36 @@ ggplot(draft_by_conf) + geom_bar(aes(x = conf, y = prop_drafted), stat = "identi
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-To better understand the relationship between our predictors, we make scatterplots with 2 predictors on the axis and color indicating whether that player was drafted.
+To better understand the relationship between our predictors, we make scatteplots with 2 predictors on the axis and color indicating wheter that player was drafted.
 
-This first scatterplot has minutes played on the x axis and Points on the y axis. As expected these two variables are highly positively correlated with players who would go on to be drafted having higher values of both ending up in the top right of this plot.
+This first scatterplot has minutes played on the x axis and Points on the y axis. As expected these two variables are highly positively correlated with players who would go on to be drafted having higer values of both ending up in the top right of this plot.
 ```{r}
 s_cleaned %>% ggplot(aes(x=min_played, y = pts, col = drafted)) + geom_point()
+
 ```
 
 We made another scatterplot to examine the relationship between Dunks made and three pointers made. 
 
 ```{r}
 s_cleaned %>% ggplot(aes(x=dunksmade, y = TPM, col = drafted)) + geom_point()
+
+
 ```
 
 The metrics of assists (ast) and assist percentage are base off of similar stats and therefore we expect them to be highly correlated. We wonder if they should both be included in the model as predictors. We plot a scatterplot of the data on these two variables below.
 
 ```{r}
+
 s_cleaned %>% ggplot(aes(x=AST_per, y = ast, col = drafted)) + geom_point()
+
 ```
 From the scatterplot we can tell that the y axis (ast) is more informative to a players draft status than the x axis (ast_per) is. There are so many players that dont play all that often and could, as a result of sampling variation have a high assist percentage. None of these players wind up getting drafted. Therefore, we believe it is best to use assists as a predictor rather than assist percentage because the two metrics are highly correlated for players with a significant amount of data, but just looking at assist percentage could be misleading because of the players that aren't particularly good but still have a high assist percentage due to their small sample size.
 
-In the plot below we see a similar effect with rim shot percentage and rim shots made. Where rim shots made appears to be more informative for the same reasons because of lack of data for certain players.
+
 ```{r}
 s_cleaned %>% ggplot(aes(x=rimmade, y = rim_per, col = drafted)) + geom_point()
+
+
 ```
 
 
@@ -272,8 +278,7 @@ Our process for fitting the models will follow the following steps:
 
 3. Then we will fit a model using the optimal parameters we found and analyze each of the models using some sort of visualization.
 
-*Random Forrest:*
-
+*Random Forest:*
 
 Fit an initial random forrest model. Here I use mtry = 5 as it is close to the square root of the number of predictors we have. We'll use cross validation later to determine the optimal number for this.
 
@@ -392,10 +397,53 @@ abline(0,1)
 
 ```
 
-*Bossted Trees:*
+*Boosted Trees:*
+
+```{r}
+install.packages("rpart.plot")
+library(rpart)
+library(rpart.plot)
+
+#rpart(formula, data = , method = "")
+
+boosted_fit <- rpart(drafted ~., data = balanced_train_set, method = "class")
+
+rpart.plot(boosted_fit, extra = 106)
+
+```
+
+```{r}
+boosted_predict <- predict(boosted_fit, test_set, type = "class")
+
+table_boosted <- table(test_set$drafted, boosted_predict)
+table_boosted
+
+accuracy_boosted <- sum(diag(table_boosted)) / sum(table_boosted)
+print(paste('Boosted Trees: Accuracy', accuracy_boosted))
+
+```
+
+```{r}
+#hypertuning
 
 
+hypertune_boosted <- function(boosted_fit) {
+    new_predict <- predict(boosted_fit, test_set, type = 'class')
+    new_table <- table(test_set$drafted, new_predict)
+    new_accuracy <- sum(diag(new_table)) / sum(new_table)
+    new_accuracy
+}
 
+tuning <- rpart.control(minsplit = 6, minbucket = round(2/3), maxdepth = 10, cp = 0)
+#minsplit is min number of obs in node before next split
+#minbucket is min number of obs in leaf node
+#maxdepth is max depth of tree
+
+tune_fit <- rpart(drafted~., data = balanced_train_set, method = 'class', control = tuning)
+
+accuracy_tune(tune_fit)
+
+```
 
 
 *K-Nearest-Neighbors*
@@ -417,19 +465,15 @@ conference_t <- as.data.frame(dummy.code(test_set$conference))
 num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
 
 
-
 trn_st <- cbind(balanced_train_set, conference, num_seasons)
 
-trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
+trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
 
 
 
 tst_st <- cbind(test_set, conference_t, num_seasons_t)
 
-tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
-
-
-
+tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
 ```
 
 
@@ -441,7 +485,6 @@ XTrain = trn_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRU
 # YTest is the true labels for drafted on the test set, Xtest is the design matrix
 YTest = tst_st$drafted
 XTest = tst_st %>% dplyr::select(-drafted) %>% scale(center = TRUE, scale = TRUE)
-
 
 
 ```
@@ -509,48 +552,8 @@ This values for k_optimal is what we will use to evaluate the performance of thi
 
 # Model perforemance and Selection
 
-MAke predictions of the draft status of players in the test set using the Random Forrest model. Print a confusion matrix and record the test error
-
-```{r}
-
-yhat.rf = predict (rf_opt, newdata = test_set)
-
-rf.err = table(pred = yhat.rf, truth = test_set$drafted)
-test.rf.err = 1 - sum(diag(rf.err))/sum(rf.err)
-rf.err
-test.rf.err
-
-```
-
-Now we will make predictions using the logistic regression model
-
-```{r}
-prob.test = predict(step_model, newdata = test_set, type="response")
-
-test_set_w_pred = test_set %>% mutate(pred_drafted=as.factor(ifelse(prob.test<=(optimal_threshold), 0, 1)))
-
-log.err <- table(pred = test_set_w_pred$pred_drafted, true = test_set$drafted)
-
-test.log.err = 1 - sum(diag(log.err))/sum(log.err)
-
-log.err
-test.log.err
-
-```
-
-```{r}
-
-
-predYtst = knn(train=XTrain, test=XTest, cl=YTrain, k = k_optimal)
 
 
 
-test.error = mean(predYtst != YTest)
-
-knn.err <- table(pred=predYtst, true=test_set$drafted)
-
-knn.err
-test.error
-```
 
 # Conclusion
