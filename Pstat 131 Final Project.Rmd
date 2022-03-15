@@ -23,6 +23,9 @@ library(psych)
 library(caret)
 library(e1071)
 library(MASS)
+library(rpart)
+library(rpart.plot)
+library(skimr)
 ```
 
 ### Pstat 131 Winter 2022 Final Project:
@@ -287,6 +290,9 @@ Our process for fitting the models will follow the following steps:
 
 3. Then we will fit a model using the optimal parameters we found and analyze each of the models using some sort of visualization.
 
+
+When using cross validation, we will do this by looping through a list of reasonable numbers for that parameter. We will fit a model on all of the training set with the exception of the fold being used as the validation set for that iteration. We'll record the validation error, or out-of-bag error in the case of the random forrest model, to estimate the test error. We will then use the value for the parameter that results in the lowest estimated test error when constructing our final, optimal model.
+
 *Random Forest:*
 
 Fit an initial random forrest model. Here I use mtry = 5 as it is close to the square root of the number of predictors we have. We'll use cross validation later to determine the optimal number for this.
@@ -294,10 +300,8 @@ Fit an initial random forrest model. Here I use mtry = 5 as it is close to the s
 ```{r}
 rf.bball = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=5, ntree=300, importance=TRUE)
 
-rf.bball
 
 plot(rf.bball)
-
 
 ```
 
@@ -408,13 +412,6 @@ abline(0,1)
 
 *Boosted Trees*
 
-```{r}
-library(rpart)
-library(rpart.plot)
-library(skimr)
-```
-
-
 
 ```{r}
 #Cross Validation
@@ -445,13 +442,7 @@ class.acc <- round(as.numeric(conf_matrix$overall[1]),4)
 paste("Boosted Tree Accuracy:", class.acc,"%")
 ```
 
-```{r}
 
-
-
-
-
-```
 
 
 
@@ -529,14 +520,14 @@ do.chunk <- function(chunkid, folddef, Xdat, Ydat, ...){
 
 Here we execute the cross validation using the do.chunk function we created above. We will take the averages of the validation error for each value for k and store the lowest on as a variable called k_optimal
 ```{r}
-nfold = 3
+nfold = 5
 folds = cut(1:nrow(trn_st), breaks=nfold, labels=FALSE) %>% sample()
 
 
 
 error.folds = NULL
 # Give possible number of nearest neighbours to be considered
-allK = 3:5
+allK = 2:8
 # Loop through different number of neighbors
 for (k in allK){
 # Loop through different chunk id
@@ -562,8 +553,50 @@ This values for k_optimal is what we will use to evaluate the performance of thi
 
 # Model perforemance and Selection
 
+Make predictions of the draft status of players in the test set using the Random Forrest model. Print a confusion matrix and record the test error
+
+```{r}
+yhat.rf = predict (rf_opt, newdata = test_set)
+rf.err = table(pred = yhat.rf, truth = test_set$drafted)
+test.rf.err = 1 - round(sum(diag(rf.err))/sum(rf.err), 6)
+rf.err
+print(paste('Random Forrest Error: ', 100*test.rf.err, '%'))
+```
+
+Now we will make predictions using the logistic regression model
+
+```{r}
+prob.test = predict(step_model, newdata = test_set, type="response")
+test_set_w_pred = test_set %>% mutate(pred_drafted=as.factor(ifelse(prob.test<=(optimal_threshold), 0, 1)))
+log.err <- table(pred = test_set_w_pred$pred_drafted, true = test_set$drafted)
+test.log.err = round(1 - sum(diag(log.err))/sum(log.err), 6)
+log.err
+print(paste('Logistic Regression Error: ', 100*test.log.err, '%'))
+```
+
+
+```{r}
+class.pred <- predict(new_prune_boosted, test_set, type = "class")
+boost.err <- table(pred = class.pred, true = test_set$drafted)
+test.boost.err = 1 - round(sum(diag(boost.err))/sum(boost.err), 6)
+boost.err
+paste("Boosted Tree error: ", 100*test.boost.err,"%")
+```
 
 
 
+
+```{r}
+predYtst = knn(train=XTrain, test=XTest, cl=YTrain, k = k_optimal)
+test.error = round(mean(predYtst != YTest), 6)
+knn.err <- table(pred=predYtst, true=test_set$drafted)
+knn.err
+print(paste('K-Nearest-Neighbor Error: ', 100 * test.error, '%'))
+```
+
+
+
+
+The model with the lowest error when making predictions for the trst set is  
 
 # Conclusion
