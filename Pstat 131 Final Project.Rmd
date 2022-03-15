@@ -34,6 +34,7 @@ library(skimr)
 
 # Introduction
 
+Every year the NBA holds their draft, where teams will pick to sign new players on to their team. Per the NBA rules for the draft there are not many rules against who can’t be drafted other than the player must be at least one year removed from high school. Naturally this causes NCAA basketball teams to be the biggest pool of talent for the NBA to draft athletes from. Historically about ninety percent of players drafted come from Division one programs in the NCAA. In this project we will be attempting to use players’ statistics from their last season in the NCAA from the years 2009 to 2020 to predict if a player will be drafted. The data set includes about 20000 players where only about 500 end up getting drafted. 
 
 
 # Loading Data
@@ -45,6 +46,7 @@ college_stats <- read.csv('CollegeBasketballPlayers2009-2021.csv',
                           na.strings = c("", "N/A", "None", "-"))
 ```
 
+\newpage
 
 # Data Cleaning
 
@@ -99,6 +101,8 @@ Lastly, to finish cleaning our data we must get rid of players in the data who h
 s_cleaned <- subset(s_cleaned, year != 2021)
 
 ```
+
+\newpage
 
 ## Exploratory Data Analysis
 
@@ -176,7 +180,6 @@ We made another scatterplot to examine the relationship between Dunks made and t
 ```{r}
 s_cleaned %>% ggplot(aes(x=dunksmade, y = TPM, col = drafted)) + geom_point()
 
-
 ```
 
 The metrics of assists (ast) and assist percentage are base off of similar stats and therefore we expect them to be highly correlated. We wonder if they should both be included in the model as predictors. We plot a scatterplot of the data on these two variables below.
@@ -204,6 +207,8 @@ data2 <- data1[order(data1$value),]
 colnames(data2) <- c("Variable1", "Variable2", "Correlation")            
 head(data2, 10)
 ```
+
+\newpage
 
 # Test/training split
 
@@ -280,6 +285,8 @@ balanced_train_set <- ovun.sample(drafted ~ ., data = training_set, method = "bo
 table(balanced_train_set$drafted)
 ```
 
+\newpage
+
 # Model Fitting
 
 Our process for fitting the models will follow the following steps:
@@ -313,7 +320,7 @@ tce = c()
 fce = c()
 oob = c()
 
-ntree = 300
+ntree = 500
 for (i in 2:15){
   rf = randomForest(drafted ~ conference + num_seasons + Min_per + usg + FTM + FT_per + twoPM + twoP_per + TPM + TP_per + adjoe + rimmade + rim_per + midmade + mid_per + dunksmade + dunk_per + stops + min_played + off_reb + def_reb + total_reb + ast + stl + blk + pts + height, data=balanced_train_set, mtry=i, ntree=ntree, importance=TRUE)
   
@@ -468,13 +475,13 @@ num_seasons_t <- as.data.frame(dummy.code(test_set$num_seasons))
 
 trn_st <- cbind(balanced_train_set, conference, num_seasons)
 
-trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
+trn_st <- trn_st %>% dplyr::select(-one_of(c("conference", "num_seasons","6")))
 
 
 
 tst_st <- cbind(test_set, conference_t, num_seasons_t)
 
-tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons")))
+tst_st <- tst_st %>% dplyr::select(-one_of(c("conference", "num_seasons", "6")))
 ```
 
 
@@ -549,7 +556,7 @@ k_optimal = max(smallest_err$neighbors)
 This values for k_optimal is what we will use to evaluate the performance of this model and compare this k-nearest-neighbor model to the other models that we fit.
 
 
-
+\newpage
 
 # Model perforemance and Selection
 
@@ -594,9 +601,23 @@ knn.err
 print(paste('K-Nearest-Neighbor Error: ', 100 * test.error, '%'))
 ```
 
+The model with the lowest error when making predictions for the test set is the random Forrest model. HEre is a plot that shows the importance of each predictor in the model.
 
+```{r, fig.width=12}
+varImpPlot(rf_opt)
 
+```
 
-The model with the lowest error when making predictions for the trst set is  
+\newpage
 
 # Conclusion
+
+The model with the lowest error when making predictions for the test set is the random Forrest model. That model correctly classified 56 of the 92 players in the test set who would be drafted. It also correctly classified 3007 of the 3025 players who were not drafted. of the 74 players from the test set that our model predicted would be drafted, 56 of them actually would be drafted.
+
+The logistic regression model had the second lowest error. This model actually had correctly identified more of the players that went on to be drafted. The reason that the test error is higher is that it classified over 100 players as drafted who would ultimately not get drafted. This likely has to do with our threshold. Had the threshold been set higher we would have seen more players incorrectly classified as undrafted and less players incorrectly classified as drafted. This could be tweaked to reflect what we find most important. If our goal is to correctly classify as many drafted players, we could slightly lower the threshold. If we instead were more focussed on maximizing the likelihood that a player that we classify as drafted actually gets drafted we could slightly raise the threshold. These tradeoffs can improve our model to better serve our goals for it.
+
+The boosted decision tree model we fit had a test error rate of just over five percent. It suprised me that the boosted model did not perform better than the logistic regression model. In fact, it had more false positives and more false negatives. Overall, it isn't necessarily bad at predicting players' draft status, it's just that some of our other models were better. 
+
+Lastly, the model with the highest error was the k-nearest-neighbors model with a test error of just over 10 percent. For this reason it is the least useful of our models. In addition, this model took the longest time and most computing power to run by far. In the future, I will most likely not use a k-nearest-neighbor model as a first choice when I encounter a classification problem. It was still good to see in this project how it performed compared to some of our other models.
+
+
