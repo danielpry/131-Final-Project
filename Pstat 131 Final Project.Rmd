@@ -242,6 +242,11 @@ Our process for fitting the models will follow the following steps:
 
 3. Then we will fit a model using the optimal parameters we found and analyze each of the models using some sort of visualization.
 
+
+
+When using cross validation, we will do this by looping through a list of reasonable numbers for that parameter. We will fit a model on all of the training set with the exception of the fold being used as the validation set for that iteration. We'll record the validation error, or out-of-bag error in the case of the random forrest model, to estimate the test error. We will then use the value for the parameter that results in the lowest estimated test error when constructing our final, optimal model.
+
+
 *Random Forrest:*
 
 
@@ -391,6 +396,8 @@ str(training_set)
 table(training_set$num_seasons)
 table(training_set$conference)
 ```
+
+
 Before we begin, we have to do something about the categorical variables we are using as predictors. A k-nearest-neighbors model would not work with variables like conference and num_seasons as we currently have them. We will dummycode these variables in both the training set as well as the test set.
 
 ```{r}
